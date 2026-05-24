@@ -1,0 +1,9 @@
+{
+  "name": "คำนวณคนละครึ่ง",
+  "short_name": "KhonLaKhrueng",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f2a44",
+  "theme_color": "#0f2a44",
+  "icons": []
+}
