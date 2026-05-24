@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำนวณคนละครึ่ง 60/40</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f2a44;
+    color: white;
+    padding: 20px;
+}
+
+.container {
+    max-width: 420px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+}
+
+.card {
+    background: #173b5c;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: none;
+    font-size: 18px;
+}
+
+button {
+    width: 48%;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.calculate {
+    background: #ff7a1a;
+    color: white;
+}
+
+.reset {
+    background: #555;
+    color: white;
+}
+
+.result {
+    text-align: center;
+    font-size: 32px;
+    margin-top: 10px;
+}
+
+.zone {
+    text-align: center;
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+canvas {
+    display: block;
+    margin: auto;
+}
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0f2a44">
+
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js');
+    });
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>คำนวณคนละครึ่งรัฐจ่ายสูงสุด 200 บาท</h1>
+
+<div class="card">
+
+<label>ราคาสินค้า</label>
+<input type="number" id="price">
+
+<label>คิดเปอร์เซ็น%</label>
+<input type="60" id="percent" value="60%">
+
+<label>รัฐจ่าย</label>
+<input type="number" id="state" readonly>
+
+<label>เราต้องจ่าย</label>
+<input type="number" id="pay" readonly>
+
+<label>ยอดรัฐจ่ายสูงสุดต่อวัน (Max 200 บาท)</label>
+<input type="number" id="daily" value="200">
+
+<label>คงเหลือจากรัฐจ่าย</label>
+<input type="number" id="remain" readonly>
+
+<button class="calculate" onclick="calculate()">คำนวณ</button>
+<button class="reset" onclick="resetForm()">RESET</button>
+
+</div>
+
+<div class="card">
+
+<canvas id="gauge" width="300" height="180"></canvas>
+
+<div class="result" id="result">
+0.00 บาท
+</div>
+
+<div style="text-align:center;margin-top:10px;">Speed Meter รัฐจ่ายสูงสุด 200 บาท</div><div class="zone" id="zone">
+-
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+function drawGauge(percent) {
+
+    var canvas = document.getElementById("gauge");
+    var ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var centerX = 150;
+    var centerY = 150;
+    var radius = 120;
+
+    function arc(start, end, color) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius,
+            Math.PI * start,
+            Math.PI * end);
+        ctx.lineWidth = 20;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+    }
+
+    arc(1, 1.3, "pink");
+    arc(1.3, 1.7, "gold");
+    arc(1.7, 2, "red");
+
+    var angle = 1 + percent / 100;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(
+        centerX + radius * Math.cos(Math.PI * angle),
+        centerY + radius * Math.sin(Math.PI * angle)
+    );
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "white";
+    ctx.stroke();
+}
+
+function calculate() {
+
+    var price =
+        parseFloat(document.getElementById("price").value) || 0;
+
+    var percent =
+        parseFloat(document.getElementById("percent").value) || 0;
+
+    var rawStateAmount =
+        (price * percent) / 100;
+
+    var payPercent =
+        100 - percent;
+
+    var normalPayAmount =
+        (price * payPercent) / 100;
+
+    var daily =
+        parseFloat(document.getElementById("daily").value) || 0;
+
+    // รัฐจ่ายได้สูงสุดไม่เกิน 200 บาทต่อวัน
+    var stateAmount =
+        Math.min(rawStateAmount, daily);
+
+    // ส่วนที่เกินจากรัฐจ่าย ให้เราเป็นคนจ่ายเอง
+    var extraPay =
+        rawStateAmount - stateAmount;
+
+    var payAmount =
+        normalPayAmount + extraPay;
+
+    document.getElementById("state").value =
+        stateAmount.toFixed(2);
+
+    document.getElementById("pay").value =
+        payAmount.toFixed(2);
+
+    document.getElementById("result").innerHTML =
+        payAmount.toFixed(2) + " บาท";
+
+    var remain =
+        daily - stateAmount;
+
+    document.getElementById("remain").value =
+        remain.toFixed(3);
+
+    var zone = "";
+
+    if (payPercent <= 30) {
+        zone = "LOW";
+    }
+    else if (payPercent <= 70) {
+        zone = "MEDIUM";
+    }
+    else {
+        zone = "MAX";
+    }
+
+    document.getElementById("zone").innerHTML =
+        zone;
+
+    // แสดงสปีดมิเตอร์ตามยอดรัฐจ่ายสูงสุด 200 บาท
+    var gaugePercent = (stateAmount / daily) * 100;
+    drawGauge(gaugePercent);
+}
+
+function resetForm() {
+
+    document.getElementById("price").value = "";
+    document.getElementById("percent").value = "60";
+    document.getElementById("state").value = "";
+    document.getElementById("pay").value = "";
+    document.getElementById("daily").value = "200";
+    document.getElementById("remain").value = "";
+
+    document.getElementById("result").innerHTML =
+        "0.00 บาท";
+
+    document.getElementById("zone").innerHTML =
+        "-";
+
+    drawGauge(0);
+}
+
+drawGauge(0);
+
+</script>
+
+</body>
+</html>
